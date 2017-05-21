@@ -13,6 +13,7 @@ public class brush : MonoBehaviour {
     public bool isPainting;
     public bool onBucket;
     public bool onGrid;
+    public string drawType;
     public int maxAmmo;
     public int paintTypeThreshold;
 
@@ -28,7 +29,10 @@ public class brush : MonoBehaviour {
         onGrid = false;
         maxAmmo = 360;
         paintTypeThreshold = 180;
-	}
+
+        GetComponent<Renderer>().sortingLayerName = "LayerName";
+        GetComponent<Renderer>().sortingOrder = 1;
+    }
 	
 	// Update is called once per frame
 	void Update () {
@@ -72,12 +76,36 @@ public class brush : MonoBehaviour {
                 onBucket = true;
             }
         }
+        /*
         if (col.tag == "cell")
         {
             onGrid = true;
         }
-            
+        */
+        if (col.tag == "cell")
+        {
+            if (isPainting)
+            {
+                col.GetComponent<cell>().color(playerNum, myColor);
+            }
+        }
+
     }
+
+    public void OnTriggerStay(Collider col)
+    {
+        //Debug.Log("in something");
+        if (col.tag == "cell")
+        {
+            //Debug.Log("in a cell");
+            if (isPainting)
+            {
+                col.GetComponent<cell>().color(playerNum, myColor);
+                //Debug.Log("coloring a cell");
+            }
+        }
+    }
+
 
     public void OnTriggerExit(Collider col)
     {
@@ -90,13 +118,20 @@ public class brush : MonoBehaviour {
                 if (ammo<maxAmmo && ammo>paintTypeThreshold)
                 {
                     ammo = paintTypeThreshold;
+                    drawType = "dot";
+                }
+                if (ammo == maxAmmo)
+                {
+                    drawType = "line";
                 }
             }
         }
+        /*
         if (col.tag == "cell")
         {
             onGrid = false;
         }
+        */
     }
 
 

@@ -13,6 +13,7 @@ public class cell : MonoBehaviour {
      * 3: painted by both players
      */
     int timer;
+    public int maxTime;
     public bool isPaintable;
     public int closestPlayer;
     public float grad;
@@ -23,7 +24,12 @@ public class cell : MonoBehaviour {
         r.material.color = Color.white;
         painter = 0;
         timer = 0;
+        maxTime = 60;
         isPaintable = true;
+        GetComponent<Renderer>().sortingLayerName = "LayerName";
+        GetComponent<Renderer>().sortingOrder = 0;
+        //renderer.sortingLayerName = "LayerName";
+        //renderer.sortingOrder = 0;
     }
 	
 	// Update is called once per frame
@@ -35,7 +41,8 @@ public class cell : MonoBehaviour {
         if (timer==1)
         {
             isPaintable = false;
-            GetComponent<Collider2D>().isTrigger = false;
+            GetComponent<Collider>().isTrigger = false;
+            //Debug.Log("disabling cell");
         }
     }
 
@@ -43,4 +50,20 @@ public class cell : MonoBehaviour {
     {
 
     }
+
+    public void color(int i, Color c)
+    {
+        timer = maxTime; 
+        if (painter ==0)
+        {
+            painter = i;
+            r.material.color = c;
+        } 
+        else if (painter != i)
+        {
+            painter = 3;
+            r.material.color = Color.black;
+        }
+    }
+
 }

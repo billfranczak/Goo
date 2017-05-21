@@ -25,6 +25,7 @@ public class gm : MonoBehaviour {
     public inputHandler p2Input;
     public bucket p1bucket;
     public bucket p2bucket;
+    public bool p1oom;
 
     void Start () {
         //Debug.Log("yo");
@@ -55,6 +56,7 @@ public class gm : MonoBehaviour {
                 newCell.AddComponent<cell>();
                 //newCell.AddComponent<Collider2D>();   CHECK THIS LATER
                 newCell.GetComponent<BoxCollider>().isTrigger = true;
+                newCell.tag = "cell";
                 cells[i,j] = newCell;
                 
             }
@@ -69,6 +71,7 @@ public class gm : MonoBehaviour {
         var initPos = new Vector3(-3, -3, 0);
         p1bucket = Instantiate(bucketPrefab,initPos,Quaternion.identity).GetComponent<bucket>();
         p1bucket.playerNum = 1;
+        p1oom = false;
     }
 	
 	// Update is called once per frame
@@ -80,16 +83,22 @@ public class gm : MonoBehaviour {
         p1Input.inputUpdate();
 
         var v3 = Input.mousePosition;
-        v3.z = 10.0f;
+        v3.z = 00.0f;
         v3 = Camera.main.ScreenToWorldPoint(v3);
-        p1Brush.moveToXY(v3.x, v3.y);
+        if (!p1Brush.isPainting)
+        {
+            p1Brush.moveToXY(v3.x, v3.y);
+        }
+
+
 
         if (p1Input.mouseDown && !p1Brush.isPainting)
         {
             p1Brush.startPainting();
         }
-        if (!p1Input.mouseDown && p1Brush.isPainting)
+        if ((!p1Input.mouseDown || p1oom) && p1Brush.isPainting)
         {
+            //p1Brush.ammo = 0;
             p1Brush.stopPainting();
         }
 
