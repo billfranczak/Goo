@@ -15,11 +15,16 @@ public class cell : MonoBehaviour {
     int timer;
     public int maxTime;
     public bool isPaintable;
+    public bool impassable;
     public int closestPlayer;
+    public float closestDist;
     public float grad;
+
+
 
     Renderer r;
 	void Start () {
+        impassable = false;
         r = GetComponent<Renderer>();
         r.material.color = Color.white;
         painter = 0;
@@ -28,6 +33,7 @@ public class cell : MonoBehaviour {
         isPaintable = true;
         GetComponent<Renderer>().sortingLayerName = "LayerName";
         GetComponent<Renderer>().sortingOrder = 0;
+        closestDist = Mathf.Infinity;
         //renderer.sortingLayerName = "LayerName";
         //renderer.sortingOrder = 0;
     }

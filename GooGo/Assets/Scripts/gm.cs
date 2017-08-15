@@ -15,6 +15,8 @@ public class gm : MonoBehaviour {
     int hCellNum;
     int vCellNum;
     public GameObject[,] cells;
+    public Vector2[,] celLox;
+    public cell[,] gotCell;
     
     Vector3 origin;
     GameObject newCell;
@@ -26,18 +28,19 @@ public class gm : MonoBehaviour {
     public bucket p1bucket;
     public bucket p2bucket;
     public bool p1oom;
+    public bool frame1;
 
     void Start () {
-        //Debug.Log("yo");
-        cellSize = .1f; 
-        hCellNum = 50;
-        vCellNum = 50;
+        cellSize = .05f; 
+        hCellNum = 100;
+        vCellNum = 100;
         origin = new Vector3(-3, 3,0);
         Vector3 pos;
         //Quaternion angle = new Quaternion(0, 0, 0, 0);
         //Debug.Log(cellPrefab);
 
         cells = new GameObject[hCellNum, vCellNum];
+        gotCell = new cell[hCellNum, vCellNum];
         for (int i = 0; i < hCellNum; i++)
         {
             for (int j = 0; j < vCellNum; j++)
@@ -55,12 +58,26 @@ public class gm : MonoBehaviour {
                 //Debug.Log(newCell.GetType());
                 newCell.AddComponent<cell>();
                 //newCell.AddComponent<Collider2D>();   CHECK THIS LATER
-                newCell.GetComponent<BoxCollider>().isTrigger = true;
+
+                //moving to nontrigger paradigm
+
+                //newCell.GetComponent<BoxCollider>().isTrigger = true;
                 newCell.tag = "cell";
                 cells[i,j] = newCell;
                 
             }
             
+        }
+
+        celLox = new Vector2[hCellNum, vCellNum];
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                celLox[i, j] = cells[i, j].transform.position;
+                gotCell[i, j] = cells[i, j].GetComponent<cell>();
+            }
         }
 
 
@@ -72,10 +89,31 @@ public class gm : MonoBehaviour {
         p1bucket = Instantiate(bucketPrefab,initPos,Quaternion.identity).GetComponent<bucket>();
         p1bucket.playerNum = 1;
         p1oom = false;
+
+        frame1 = true;
+
+        
+        
+
     }
 	
 	// Update is called once per frame
 	void Update () {
+
+        if (frame1)
+        {
+            for (int i = 0; i < hCellNum; i++)
+            {
+                for (int j = 0; j < vCellNum; j++)
+                {
+                    p1Brush.cells[i, j] = cells[i, j];
+                    p1Brush.celLox[i, j] = celLox[i, j];
+                    p1Brush.gotCell[i, j] = cells[i, j].GetComponent<cell>();
+
+                }
+            }
+            frame1 = false;
+        }
 
 
         //p1
@@ -89,17 +127,35 @@ public class gm : MonoBehaviour {
         {
             p1Brush.moveToXY(v3.x, v3.y);
         }
+        else
+        {
+            if (p1Brush.ammo>0 && !p1Brush.onBucket)
+            {
+                if (p1Brush.drawType == "line")
+                {
+                    p1Brush.moveToXYcapped(v3.x, v3.y); // put a different move function here
+                }
+                if (p1Brush.drawType == "dot")
+                {
+                    //Debug.Log("dot");
+                    p1Brush.dotPaint();
+                    p1Brush.ammo = 0;
+                }
+            }
+            
+        }
 
 
 
+        
+        if ((!p1Input.mouseDown || ((p1Brush.ammo)<=0)&& !p1Brush.onBucket) && p1Brush.isPainting)
+        {
+            p1Brush.stopPainting();
+            //Debug.Log("stop painting");
+        }
         if (p1Input.mouseDown && !p1Brush.isPainting)
         {
             p1Brush.startPainting();
-        }
-        if ((!p1Input.mouseDown || p1oom) && p1Brush.isPainting)
-        {
-            //p1Brush.ammo = 0;
-            p1Brush.stopPainting();
         }
 
     }
