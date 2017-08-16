@@ -35,6 +35,7 @@ public class brush : MonoBehaviour {
     public bool pullback1;
     public bool pullback2;
     public Vector2 tlerp;
+    public bool used;
 
 
 	// Use this for initialization
@@ -57,6 +58,7 @@ public class brush : MonoBehaviour {
         ACR = 300;
         dotSize = .4f;
         lineSize = .1f;
+        used = false;
 
         GetComponent<Renderer>().sortingLayerName = "LayerName";
         GetComponent<Renderer>().sortingOrder = 1;
@@ -64,6 +66,7 @@ public class brush : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+        /*
 		if (onBucket && isPainting)
         {
             if (ammo <maxAmmo)
@@ -81,8 +84,9 @@ public class brush : MonoBehaviour {
             }
 
         }
-
+        */
         //deprocate soon
+        /*
         if (isPainting && !onBucket)
         {
             if (drawType == "dot")
@@ -104,6 +108,7 @@ public class brush : MonoBehaviour {
                 waitingFrame = false;
             }
         }
+        */
 
 	}
 
@@ -155,6 +160,7 @@ public class brush : MonoBehaviour {
         }
 
         //Debug.Log("pos" + pos.position);
+        used = true;
         bcLerpPaint();
         
     }
@@ -299,6 +305,7 @@ public class brush : MonoBehaviour {
                     pos.localScale = new Vector3(lineSize, lineSize, lineSize);
                     waitingFrame = true;
                     ammo = maxAmmo;
+                    used = false;
                 }
                 if (ammo < paintTypeThreshold)
                 {
