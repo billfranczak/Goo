@@ -9,6 +9,7 @@ public class gm : MonoBehaviour {
     public GameObject cellPrefab;
     public GameObject brushPrefab;
     public GameObject inputHandlerPrefab;
+    public GameObject p2testInputPrefab;
     public GameObject bucketPrefab;
 
     float cellSize;
@@ -17,34 +18,57 @@ public class gm : MonoBehaviour {
     public GameObject[,] cells;
     public Vector2[,] celLox;
     public cell[,] gotCell;
-    
+
+    int timer;
+    int maxTimer;
+
     Vector3 origin;
     GameObject newCell;
 
     public brush p1Brush;
     public brush p2Brush;
     public inputHandler p1Input;
-    public inputHandler p2Input;
+    //public inputHandler p2Input;
+    public p2testInputHandler p2Input;
     public bucket p1bucket;
     public bucket p2bucket;
     public bool p1oom;
+    public bool newPaint;
+    public bool newPaint2; //triggers frame after newpaint
     public bool frame1;
+    public Color p1color;
+    public Color p2color;
 
     public List<Vector2> cellQ;
     public List<float> qDist;
 
-
+    public Vector2[] bfsSort;
+    public float[] distsSort;
 
     void Start () {
         cellQ = new List<Vector2>(400);
         qDist = new List<float>(400);
-        cellSize = .05f; 
-        hCellNum = 100;
-        vCellNum = 100;
+        cellSize = .2f; 
+        hCellNum = 25;
+        vCellNum = 25;
         origin = new Vector3(-3, 3,0);
+        newPaint = false;
+        newPaint2 = false;
+        maxTimer = 60;
         Vector3 pos;
         //Quaternion angle = new Quaternion(0, 0, 0, 0);
         //Debug.Log(cellPrefab);
+
+
+
+        GameObject backdrop = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        backdrop.transform.position = origin+2.5f*Vector3.right+2.5f*Vector3.down;
+        backdrop.transform.localScale = new Vector3(5, 5, .01f);
+        backdrop.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"));
+        backdrop.GetComponent<Renderer>().material.color=Color.white;
+
+        backdrop.GetComponent<Renderer>().sortingLayerName = "Default";
+        backdrop.GetComponent<Renderer>().sortingOrder = 2;
 
         cells = new GameObject[hCellNum, vCellNum];
         gotCell = new cell[hCellNum, vCellNum];
@@ -87,6 +111,7 @@ public class gm : MonoBehaviour {
             }
         }
 
+        //p1
 
         p1Brush = Instantiate(brushPrefab).GetComponent<brush>();
         //Debug.Log(p1Brush);
@@ -95,15 +120,33 @@ public class gm : MonoBehaviour {
         var initPos = new Vector3(-3, -3, 0);
         p1bucket = Instantiate(bucketPrefab,initPos,Quaternion.identity).GetComponent<bucket>();
         p1bucket.playerNum = 1;
-        p1oom = false;
+        //p1oom = false;
+        p1color= Color.blue;
+        p1Brush.myColor = Color.blue;
+
+        //p2
+
+        p2Brush = Instantiate(brushPrefab).GetComponent<brush>();
+        //Debug.Log(p1Brush);
+        p2Brush.playerNum = 2;
+        p2Input = Instantiate(p2testInputPrefab).GetComponent<p2testInputHandler>();
+        initPos = new Vector3(3, -3, 0);
+        p2bucket = Instantiate(bucketPrefab, initPos, Quaternion.identity).GetComponent<bucket>();
+        p2bucket.playerNum = 2;
+        //p2oom = false;
+        p2color = Color.magenta;
+        p2Brush.myColor = Color.magenta;
+
+
+
+
 
         frame1 = true;
 
         cellQ.Clear();
         qDist.Clear();
 
-        Debug.Log("fuckballs");
-
+        //bfsSort=
     }
 	
 	// Update is called once per frame
@@ -111,19 +154,43 @@ public class gm : MonoBehaviour {
 
         if (frame1)
         {
+            p1Brush.playerNum = 1;
+            p1bucket.playerNum = 1;
+
+            p2Brush.playerNum = 2;
+            p2bucket.playerNum =2;
+
 
             //setAllCellBFS();
-            Debug.Log("clearing old values");
+            //Debug.Log("clearing old values");
+
             unmarkAllCells();
             clearAllCellBFS();
-            Debug.Log("calling bfs");
+
+            //Debug.Log("calling bfs");
+
             gotCell[0, 0].marked = true;
             cellQ.Clear();
             qDist.Clear();
             Vector2 v0 = Vector2.zero;
+
+            //setAllCellBFS();
+            setAllCellDistsTemp();
+            sortCellDists();
+
+            /*
+            for (int t=0; t < hCellNum * vCellNum - 1; t++)
+            {
+                Debug.Log(gotCell[5,5].bfs[t]);
+            }
+            */
+
+            /*
             cellQ.Add(v0);
             qDist.Add(0);
             cellBFS(0,0, -1);
+            */
+
             /*
             Debug.Log(gotCell[0,0].bfs[0]);
             Debug.Log(gotCell[0, 0].bfs[1]);
@@ -147,13 +214,26 @@ public class gm : MonoBehaviour {
 
                 }
             }
+
+            for (int i = 0; i < hCellNum; i++)
+            {
+                for (int j = 0; j < vCellNum; j++)
+                {
+                    p2Brush.cells[i, j] = cells[i, j];
+                    p2Brush.celLox[i, j] = celLox[i, j];
+                    p2Brush.gotCell[i, j] = cells[i, j].GetComponent<cell>();
+
+                }
+            }
+
             frame1 = false;
         }
 
 
-        //p1
+        //P1
 
         p1Input.inputUpdate();
+        
 
         var v3 = Input.mousePosition;
         v3.z = 00.0f;
@@ -183,6 +263,8 @@ public class gm : MonoBehaviour {
             p1Brush.moveToXY(v3.x, v3.y);
             if (p1Brush.used)
             {
+                newPaint = true;
+                timer = maxTimer;
                 p1Brush.ammo = 0;
                 p1Brush.used = false;
             }
@@ -194,12 +276,20 @@ public class gm : MonoBehaviour {
                 if (p1Brush.drawType == "line")
                 {
                     p1Brush.moveToXYcapped(v3.x, v3.y); // put a different move function here
+                    if (p1Brush.lastFramePainting)
+                    {
+                        p1Brush.lastFramePainting = false;
+                        newPaint = true;
+                        timer = maxTimer;
+                    }
                 }
                 if (p1Brush.drawType == "dot")
                 {
                     //Debug.Log("dot");
                     p1Brush.dotPaint();
                     p1Brush.ammo = 0;
+                    newPaint = true;
+                    timer = maxTimer;
                 }
             }
             
@@ -218,8 +308,221 @@ public class gm : MonoBehaviour {
             p1Brush.startPainting();
         }
 
+        // END P1
+
+        //P2
+
+        p2Input.inputUpdate();
+
+        v3 = Input.mousePosition;
+        v3.z = 00.0f;
+        v3 = Camera.main.ScreenToWorldPoint(v3);
+
+        if (p2Brush.onBucket && p2Brush.isPainting)
+        {
+            if (p2Brush.ammo < p2Brush.maxAmmo)
+            {
+                //ammo++;
+                p2Brush.ammo = p2Brush.ammo + 6;
+                if (p2Brush.ammo == p2Brush.maxAmmo)
+                {
+                    Debug.Log("full charge");
+                }
+                if (p2Brush.ammo == p2Brush.paintTypeThreshold)
+                {
+                    Debug.Log("half charge");
+                }
+            }
+
+        }
+
+
+        if (!p2Brush.isPainting)
+        {
+            p2Brush.moveToXY(v3.x+2, v3.y); // add 2 to offset players for testing purposes only
+            if (p2Brush.used)
+            {
+                newPaint = true;
+                timer = maxTimer;
+                p2Brush.ammo = 0;
+                p2Brush.used = false;
+            }
+        }
+        else
+        {
+            if (p2Brush.ammo > 0 && !p2Brush.onBucket)
+            {
+                if (p2Brush.drawType == "line")
+                {
+                    p2Brush.moveToXYcapped(v3.x+2, v3.y); // put a different move function here    // add 2 to offset players for testing purposes only
+                    if (p2Brush.lastFramePainting)
+                    {
+                        p2Brush.lastFramePainting = false;
+                        newPaint = true;
+                        timer = maxTimer;
+                    }
+                }
+                if (p2Brush.drawType == "dot")
+                {
+                    //Debug.Log("dot");
+                    p2Brush.dotPaint();
+                    p2Brush.ammo = 0;
+                    newPaint = true;
+                    timer = maxTimer;
+                }
+            }
+
+        }
+
+
+
+
+        if ((!p2Input.mouseDown || ((p2Brush.ammo) <= 0) && !p2Brush.onBucket) && p2Brush.isPainting)
+        {
+            p2Brush.stopPainting();
+            //Debug.Log("stop painting");
+        }
+        if (p2Input.mouseDown && !p2Brush.isPainting)
+        {
+            p2Brush.startPainting();
+        }
+
+        //END P2
+
+
+        if (newPaint)
+        {
+            //Debug.Log("newPaint");
+            if (timer > 0)
+            {
+                timer--;
+            }
+            
+            else
+            {
+                newPaint = false;
+                {
+                    for (int i = 0; i < hCellNum; i++)
+                    {
+                        for (int j = 0; j < vCellNum; j++)
+                        {
+                            updateClosestPlayer(i, j);
+                            if (gotCell[i, j].closestPlayer == 1)
+                            {
+                                gotCell[i, j].updateClosestVisual(p1color);
+                            }
+                            if (gotCell[i, j].closestPlayer == 2)
+                            {
+                                gotCell[i, j].updateClosestVisual(p2color);
+                            }
+                        }
+                    }
+                }
+                //Debug.Log(gotCell[0, 0].r.material.color.a);  
+            }
+
+
+
+
+        }
+
+
+
+
+
+
+    }
+    //END UPDATE
+
+    public void setAllCellDistsTemp()
+    {
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                tempCellDist(i, j, 0f);
+            }
+        }
     }
 
+    public void tempCellDist(float i1, float j1, float dist)
+    {
+        int k = 0;
+        for (int i2=0; i2<hCellNum; i2++ )
+        {
+            for ( int j2=0; j2<vCellNum; j2++)
+            {
+                if (!(i1==i2 && j1 == j2))
+                    {
+                    gotCell[(int)i1, (int)j1].bfs[k] = new Vector2(i2, j2);
+                    int i = Math.Abs((int)i1 - (int)i2);
+                    int j = Math.Abs((int)j1 - (int)j2);
+                    gotCell[(int)i1, (int)j1].dists[k] = 1.4f*(float) Math.Min(i, j) + (Math.Max(i, j) - Math.Min(i, j));
+                }
+                else
+                {
+                    gotCell[(int)i1, (int)j1].bfs[k] = new Vector2(i2, j2);
+                    gotCell[(int)i1, (int)j1].dists[k] = 0;
+                }
+                k++;
+            }
+        }
+    }
+
+    public void sortCellDists()
+    {
+        for (int i=0; i<hCellNum; i++)
+        {
+            for (int j=0;j<vCellNum; j++)
+            {
+                qs(0, hCellNum * vCellNum-1, i, j);
+            }
+        }
+    }
+
+    public void qs( int lo, int hi, int i, int j)
+    {
+        if (lo<hi)
+        {
+            int p = part(lo, hi, i,j);
+            qs(lo, p-1, i ,j);
+            qs(p + 1, hi,i,j);
+        }
+    }
+
+    public int part(int lo, int hi, int i, int j)
+    {
+        float pivot = gotCell[i, j].dists[hi];
+        int k = lo - 1;
+        float tempf;
+        Vector2 tempv;
+        for (int t = lo; t < hi; t++)
+        {
+            if (gotCell[i, j].dists[t]<pivot)
+            {
+                k++;
+                tempf = gotCell[i,j].dists[t];
+                gotCell[i, j].dists[t] = gotCell[i, j].dists[k];
+                gotCell[i, j].dists[k] = tempf;
+
+                tempv = gotCell[i, j].bfs[t];
+                gotCell[i, j].bfs[t] = gotCell[i, j].bfs[k];
+                gotCell[i, j].bfs[k] = tempv;
+            }
+        }
+        if (gotCell[i, j].dists[hi] < gotCell[i, j].dists[k+1])
+        {
+            tempf = gotCell[i, j].dists[hi];
+            gotCell[i, j].dists[hi] = gotCell[i, j].dists[k+1];
+            gotCell[i, j].dists[k+1] = tempf;
+
+            tempv = gotCell[i, j].bfs[hi];
+            gotCell[i, j].bfs[hi] = gotCell[i, j].bfs[k+1];
+            gotCell[i, j].bfs[k+1] = tempv;
+        }
+
+        return k + 1;
+    }
 
     public void cellBFSq(float i, float j, float dist)
     {
@@ -349,7 +652,7 @@ public class gm : MonoBehaviour {
 
         }
         */
-        while (!(cellQ.Count == 0) && (cellQ.Count < 200))
+        while (!(cellQ.Count == 0) && (cellQ.Count < 300))
         {
             itr++;
             //find index of min dist, put in the linearized bfs for cell i0,j0, and enqueue the adjacent cells
@@ -411,5 +714,51 @@ public class gm : MonoBehaviour {
             }
         }
     }
+
+
+    public void updateClosestPlayer(int i,int j)
+    {
+        int t = 0;
+        int i1;
+        int j1;
+        
+        while (t < hCellNum * vCellNum && (gotCell[i,j].dists[t] < gotCell[i, j].closestDist))
+        {
+            i1 = (int) gotCell[i, j].bfs[t].x;
+            j1 = (int) gotCell[i, j].bfs[t].y;
+            if (gotCell[i1, j1].closestDist == 0)
+            {
+                gotCell[i, j].closestPlayer = gotCell[i1, j1].painter;
+                
+                if (i==0 && j == 0)
+                {
+                    Debug.Log("painter:"+gotCell[i1, j1].painter);
+                }
+                
+                gotCell[i, j].closestDist = gotCell[i, j].dists[t];
+            }
+            t++;
+        }
+        while (t < hCellNum * vCellNum && (gotCell[i, j].dists[t] == gotCell[i, j].closestDist))
+        {
+            i1 = (int)gotCell[i, j].bfs[t].x;
+            j1 = (int)gotCell[i, j].bfs[t].y;
+            if ((gotCell[i1, j1].closestDist == 0) && (gotCell[i1, j1].painter != gotCell[i, j].closestPlayer) && (gotCell[i1, j1].painter !=0))
+            {
+                gotCell[i, j].closestPlayer = 0;
+            }
+            t++;
+        }
+        /*
+        if ((i<1 && j<1) || (i>24 && j>24))
+        {
+            Debug.Log(i + " " + j + ": " + gotCell[i, j].closestPlayer + " " + gotCell[i, j].closestDist);
+        }
+        */
+        
+
+    }
+
     
+
 }

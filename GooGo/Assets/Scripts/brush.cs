@@ -9,6 +9,7 @@ public class brush : MonoBehaviour {
 
     public int hCellNum;
     public int vCellNum;
+    public float cellSize;
     public int ammo;
     public int playerNum;
     public Color myColor;
@@ -35,20 +36,22 @@ public class brush : MonoBehaviour {
     public bool pullback1;
     public bool pullback2;
     public Vector2 tlerp;
-    public bool used;
+    public bool used; //doc
+    public bool lastFramePainting;
 
 
 	// Use this for initialization
 	void Start () {
-        hCellNum = 100;
-        vCellNum = 100;
+        hCellNum = 25;
+        vCellNum = 25;
         cells = new GameObject[hCellNum, vCellNum];
+        cellSize = .2f;
         celLox = new Vector2[hCellNum, vCellNum];
         gotCell = new cell[hCellNum, vCellNum];
         pos = GetComponent<Transform>();
         r = GetComponent<Renderer>();
         r.material.color = Color.cyan;
-        myColor = Color.blue;
+        //myColor = Color.blue;
         ammo = 0;
         playerNum = 0;
         onBucket = false;
@@ -60,8 +63,8 @@ public class brush : MonoBehaviour {
         lineSize = .1f;
         used = false;
 
-        GetComponent<Renderer>().sortingLayerName = "LayerName";
-        GetComponent<Renderer>().sortingOrder = 1;
+        GetComponent<Renderer>().sortingLayerName = "fg";
+        GetComponent<Renderer>().sortingOrder = 0;
     }
 	
 	// Update is called once per frame
@@ -128,6 +131,7 @@ public class brush : MonoBehaviour {
         if (lookAheadDist*ACR>ammo)
         {
             Debug.Log("last frame drawing");
+            lastFramePainting = true;
             lookAhead = Vector3.Lerp(start, lookAhead, ammo / (lookAheadDist * ACR));
             pos.position = lookAhead;
             /*
@@ -156,6 +160,7 @@ public class brush : MonoBehaviour {
             {
                 ammo = 0;
                 drawType = "";
+                lastFramePainting = true;
             }
         }
 
@@ -187,6 +192,7 @@ public class brush : MonoBehaviour {
 
     public void paintBlob(int i0, int j0, float r)
     {
+        /*
         for(int i = 0; i < hCellNum; i++)
         {
             for (int j = 0; j < vCellNum; j++)
@@ -196,6 +202,17 @@ public class brush : MonoBehaviour {
                     gotCell[i,j].color(playerNum, myColor);
                 }
             }
+        }
+        */
+        int t = 0;
+        int i;
+        int j;
+        while (gotCell[i0, j0].dists[t] < r*(1/cellSize) )
+        {
+            i = (int)gotCell[i0, j0].bfs[t].x;
+            j = (int)gotCell[i0, j0].bfs[t].y;
+            gotCell[i, j].color(playerNum, myColor);
+            t++;
         }
     }
 
@@ -212,16 +229,33 @@ public class brush : MonoBehaviour {
                 {
                     if (celLox[i,j].x > x)
                     {
-                        iOfCel = i;
-                        pullback1 = false;
+                        if ((celLox[i, j].x - x > (cellSize/2)) && i>0)
+                        {
+                            iOfCel = i-1;
+                            pullback1 = false;
+                        } 
+                        else
+                        {
+                            iOfCel = i;
+                            pullback1 = false;
+                        }
+                        
                     }
                 }
                 if (pullback2)
                 {
                     if (celLox[i, j].y < y)
                     {
-                        jOfCel = j;
-                        pullback2 = false;
+                        if ((  y - celLox[i, j].y > (cellSize / 2)) && j > 0)
+                        {
+                            jOfCel = j - 1;
+                            pullback2 = false;
+                        }
+                        else
+                        {
+                            jOfCel = j;
+                            pullback2 = false;
+                        }
                     }
                 }
             }

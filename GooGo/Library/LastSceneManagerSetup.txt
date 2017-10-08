@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/googo.unity
+- path: Assets/online game.unity
   isLoaded: 1
   isActive: 1

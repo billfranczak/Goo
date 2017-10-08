@@ -5,7 +5,7 @@ using UnityEngine;
 public class cell : MonoBehaviour {
 
     
-    int painter; 
+    public int painter; 
     /*
      * 0: unpainted
      * 1: painted by p1
@@ -26,12 +26,20 @@ public class cell : MonoBehaviour {
     public Vector2[] bfs;
     public float[] dists;
 
-    Renderer r;
+    public Renderer r;
 	void Start () {
-        hCellNum = 100;
-        vCellNum = 100;
+        hCellNum = 25;
+        vCellNum = 25;
         impassable = false;
         r = GetComponent<Renderer>();
+        r.material.SetFloat("_Mode", 3);
+        r.material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        r.material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        r.material.SetInt("_ZWrite", 0);
+        r.material.DisableKeyword("_ALPHATEST_ON");
+        r.material.EnableKeyword("_ALPHABLEND_ON");
+        r.material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+        r.material.renderQueue = 3000;
         r.material.color = Color.white;
         painter = 0;
         timer = 0;
@@ -44,6 +52,10 @@ public class cell : MonoBehaviour {
         //renderer.sortingOrder = 0;
         bfs = new Vector2[hCellNum * vCellNum];
         dists = new float[hCellNum * vCellNum];
+
+        GetComponent<Renderer>().sortingLayerName = "all";
+        GetComponent<Renderer>().sortingOrder = 1;
+
     }
 	
 	// Update is called once per frame
@@ -56,27 +68,52 @@ public class cell : MonoBehaviour {
         {
             isPaintable = false;
             GetComponent<Collider>().isTrigger = false;
+            closestDist = 0;
             //Debug.Log("disabling cell");
         }
     }
 
+    /* deprocate and move to GM
     public void updateClosestPlayer()
     {
+        int t = 0;
+        while (dists[t] < closestDist)
+        {
+            if ()
+            {
 
-    }
+            }
+            t++;
+        }
+    } */
 
     public void color(int i, Color c)
     {
         timer = maxTime; 
-        if (painter ==0)
+        if (painter == 0)
         {
             painter = i;
             r.material.color = c;
+            //Debug.Log("painted by" + i);
         } 
         else if (painter != i)
         {
             painter = 3;
             r.material.color = Color.black;
+            //Debug.Log("double paint!!!!");
+        }
+    }
+
+    public void updateClosestVisual(Color c)
+    {
+        //Debug.Log("yo");
+        if (painter == 0)
+        {
+            Color c1 = c;
+            c1.a = .3f * Mathf.Max((((hCellNum) - closestDist) / (hCellNum)),0);
+            //Debug.Log(c1.a);
+            r.material.color = c1;
+            //Debug.Log(r.material.color.a);
         }
     }
 
