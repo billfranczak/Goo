@@ -49,16 +49,26 @@ public class _netCell : MonoBehaviour
         isPaintable = true;
         GetComponent<Renderer>().sortingLayerName = "LayerName";
         GetComponent<Renderer>().sortingOrder = 0;
-        closestDist = Mathf.Infinity;
+        //closestDist = Mathf.Infinity;
         //renderer.sortingLayerName = "LayerName";
         //renderer.sortingOrder = 0;
-        bfs = new Vector2[hCellNum * vCellNum];
-        dists = new float[hCellNum * vCellNum];
+        //bfs = new Vector2[hCellNum * vCellNum];
+        //dists = new float[hCellNum * vCellNum];
 
         GetComponent<Renderer>().sortingLayerName = "all";
         GetComponent<Renderer>().sortingOrder = 1;
 
     }
+
+    private void Awake()
+    {
+        closestDist = Mathf.Infinity;
+        hCellNum = 25;
+        vCellNum = 25;
+        bfs = new Vector2[hCellNum * vCellNum];
+        dists = new float[hCellNum * vCellNum];
+    }
+
 
     // Update is called once per frame
     void Update()
@@ -89,6 +99,12 @@ public class _netCell : MonoBehaviour
             t++;
         }
     } */
+
+    public void OnPhotonInstantiate()
+    {
+        FindObjectOfType<_netGM>().cellTemp.Add(this.gameObject);
+    }
+
 
     public void color(int i, Color c)
     {

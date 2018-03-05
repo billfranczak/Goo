@@ -16,6 +16,7 @@ public class _netGM : MonoBehaviour
     float cellSize;
     int hCellNum;
     int vCellNum;
+    public List<GameObject> cellTemp;
     public GameObject[,] cells;
     public Vector2[,] celLox;
     public _netCell[,] gotCell;
@@ -48,6 +49,10 @@ public class _netGM : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("network mode");
+
+
+        cellTemp = new List<GameObject>(400);
         cellQ = new List<Vector2>(400);
         qDist = new List<float>(400);
         cellSize = .2f;
@@ -74,6 +79,12 @@ public class _netGM : MonoBehaviour
 
         cells = new GameObject[hCellNum, vCellNum];
         gotCell = new _netCell[hCellNum, vCellNum];
+        celLox = new Vector2[hCellNum, vCellNum];
+        PhotonNetwork.ConnectUsingSettings("alpha");
+        Debug.Log("wait for connection?");
+
+
+        /*
         for (int i = 0; i < hCellNum; i++)
         {
             for (int j = 0; j < vCellNum; j++)
@@ -101,7 +112,9 @@ public class _netGM : MonoBehaviour
             }
 
         }
+        */
 
+        /*
         celLox = new Vector2[hCellNum, vCellNum];
 
         for (int i = 0; i < hCellNum; i++)
@@ -112,7 +125,7 @@ public class _netGM : MonoBehaviour
                 gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
             }
         }
-
+        */
         //p1
 
         p1Brush = Instantiate(brushPrefab).GetComponent<_netBrush>();
@@ -166,7 +179,7 @@ public class _netGM : MonoBehaviour
 
             //setAllCellBFS();
             //Debug.Log("clearing old values");
-
+            /*
             unmarkAllCells();
             clearAllCellBFS();
 
@@ -180,7 +193,7 @@ public class _netGM : MonoBehaviour
             //setAllCellBFS();
             setAllCellDistsTemp();
             sortCellDists();
-
+            */
             /*
             for (int t=0; t < hCellNum * vCellNum - 1; t++)
             {
@@ -206,7 +219,7 @@ public class _netGM : MonoBehaviour
             Debug.Log(gotCell[0, 0].bfs[8]);
             Debug.Log(gotCell[0, 0].bfs[9]);
             */
-
+            /*
             for (int i = 0; i < hCellNum; i++)
             {
                 for (int j = 0; j < vCellNum; j++)
@@ -228,7 +241,7 @@ public class _netGM : MonoBehaviour
 
                 }
             }
-
+            */
             frame1 = false;
         }
 
@@ -436,6 +449,244 @@ public class _netGM : MonoBehaviour
 
     }
     //END UPDATE
+
+
+    //NETCODE
+
+    private void OnGUI()
+    {
+        GUILayout.Label(PhotonNetwork.connectionStateDetailed.ToString());
+    }
+
+    void OnJoinedLobby()
+    {
+        Debug.Log("join lobby");
+        PhotonNetwork.JoinRandomRoom();
+    }
+
+    void OnPhotonRandomJoinFailed()
+    {
+        Debug.Log("join room fail");
+        PhotonNetwork.CreateRoom(null);
+    }
+
+    void OnJoinedRoom()
+    {
+        Debug.Log("join room");
+        if (PhotonNetwork.isMasterClient)
+        {
+            SpawnBoard();
+        }
+        else
+        {
+            getOnBoard();
+        }
+        
+    }
+
+    void getOnBoard()
+    {
+        GameObject[] cellGetter;
+        cellGetter = GameObject.FindGameObjectsWithTag("cell");
+        int ij = 0;
+        int q;
+        int r;
+        foreach (GameObject c in cellGetter)
+        {
+            q = 0;
+            r = 0;
+            while (hCellNum*(q+1)<ij)
+            {
+                q++;
+            }
+            r = ij - (q * hCellNum);
+            cells[r, q] = c;
+            ij++;
+        }
+        Debug.Log(cells[0,0]);
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                //celLox[i, j] = cells[i, j].transform.position;
+                celLox[i, j] = cells[i, j].GetPhotonView().transform.position;
+                
+                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+            }
+        }
+
+        Debug.Log(gotCell[0, 0].bfs[0]);
+
+        unmarkAllCells();
+        clearAllCellBFS();
+
+        //Debug.Log("calling bfs");
+
+        gotCell[0, 0].marked = true;
+        cellQ.Clear();
+        qDist.Clear();
+        Vector2 v0 = Vector2.zero;
+
+        //setAllCellBFS();
+        setAllCellDistsTemp();
+        sortCellDists();
+
+
+        //temp
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p1Brush.cells[i, j] = cells[i, j];
+                p1Brush.celLox[i, j] = celLox[i, j];
+                p1Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p2Brush.cells[i, j] = cells[i, j];
+                p2Brush.celLox[i, j] = celLox[i, j];
+                p2Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+
+        Debug.Log("spawnboard");
+
+
+
+    }
+
+    void SpawnBoard()
+    {
+        Debug.Log("spawn board");
+        /*
+        cells = new GameObject[hCellNum, vCellNum];
+        gotCell = new _netCell[hCellNum, vCellNum];
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                pos = origin + Vector3.right * cellSize * i + Vector3.down * cellSize * j;
+                //newCell = Instantiate(cellPrefab, pos, angle) as UnityEngine.Object;
+                //Debug.Log(newCell.GetComponent<cell>());
+                //GameObject c = GameObject.FindGameObjectWithTag("newCell");
+                //Debug.Log(newCell.GetType());
+                //cells[i][j] = newCell;
+                newCell = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                newCell.transform.position = pos;
+                newCell.transform.localScale = new Vector3(cellSize, cellSize, cellSize);
+                newCell.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"));
+                //Debug.Log(newCell.GetType());
+                newCell.AddComponent<_netCell>();
+                //newCell.AddComponent<Collider2D>();   CHECK THIS LATER
+
+                //moving to nontrigger paradigm
+
+                //newCell.GetComponent<BoxCollider>().isTrigger = true;
+                newCell.tag = "cell";
+                cells[i, j] = newCell;
+
+            }
+
+        }
+
+        celLox = new Vector2[hCellNum, vCellNum];
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                celLox[i, j] = cells[i, j].transform.position;
+                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+            }
+        }
+        */
+
+        cellTemp.Clear();
+        for (int n = 0; n < hCellNum * vCellNum; n++)
+        {
+            PhotonNetwork.Instantiate("_netCell", Vector2.zero, Quaternion.identity, 0);
+        }
+
+        while (cellTemp[399] == null) { Debug.Log("tempcell = null"); }
+
+        Vector3 pos;
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                newCell = cellTemp[0];
+                cells[i,j] = newCell;
+                pos = origin + Vector3.right * cellSize * i + Vector3.down * cellSize * j;
+                newCell.transform.position = pos;
+                newCell.transform.localScale = new Vector3(cellSize, cellSize, cellSize);
+                cellTemp.Remove(cellTemp[0]);
+            }
+        }
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                celLox[i, j] = cells[i, j].transform.position;
+                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+            }
+        }
+
+        Debug.Log(gotCell[0, 0].bfs[0]);
+
+        unmarkAllCells();
+        clearAllCellBFS();
+
+        //Debug.Log("calling bfs");
+
+        gotCell[0, 0].marked = true;
+        cellQ.Clear();
+        qDist.Clear();
+        Vector2 v0 = Vector2.zero;
+
+        //setAllCellBFS();
+        setAllCellDistsTemp();
+        sortCellDists();
+
+
+        //temp
+        for(int i = 0; i < hCellNum; i++)
+            {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p1Brush.cells[i, j] = cells[i, j];
+                p1Brush.celLox[i, j] = celLox[i, j];
+                p1Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p2Brush.cells[i, j] = cells[i, j];
+                p2Brush.celLox[i, j] = celLox[i, j];
+                p2Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+
+        Debug.Log("spawnboard");
+
+
+
+    }
+    //END NETCODE
 
     public void setAllCellDistsTemp()
     {
@@ -691,6 +942,7 @@ public class _netGM : MonoBehaviour
             {
                 for (int k = 0; k < hCellNum * vCellNum; k++)
                 {
+                    //Debug.Log(i + j + k);
                     gotCell[i, j].bfs[k] = Vector2.down;
                     gotCell[i, j].dists[k] = -1;
                 }
