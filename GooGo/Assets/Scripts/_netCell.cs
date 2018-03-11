@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class _netCell : MonoBehaviour
+public class _netCell : Photon.MonoBehaviour
 {
 
 
@@ -58,6 +58,8 @@ public class _netCell : MonoBehaviour
         GetComponent<Renderer>().sortingLayerName = "all";
         GetComponent<Renderer>().sortingOrder = 1;
 
+        this.photonView.RPC("cellTagger", PhotonTargets.AllBuffered, gameObject.tag);
+
     }
 
     private void Awake()
@@ -105,23 +107,30 @@ public class _netCell : MonoBehaviour
         FindObjectOfType<_netGM>().cellTemp.Add(this.gameObject);
     }
 
+    public void color(int i, Color c)
+    {
+        //Debug.Log("calling RPC");
+        this.photonView.RPC("colorRPC", PhotonTargets.All, i, c.r, c.g, c.b, c.a);
+    }
 
+    /*
     public void color(int i, Color c)
     {
         timer = maxTime;
-        if (painter == 0)
+        if (painter == 0 && isPaintable)
         {
             painter = i;
             r.material.color = c;
             //Debug.Log("painted by" + i);
         }
-        else if (painter != i)
+        else if (painter != i && isPaintable)
         {
             painter = 3;
             r.material.color = Color.black;
             //Debug.Log("double paint!!!!");
         }
     }
+    */
 
     public void updateClosestVisual(Color c)
     {
@@ -133,6 +142,32 @@ public class _netCell : MonoBehaviour
             //Debug.Log(c1.a);
             r.material.color = c1;
             //Debug.Log(r.material.color.a);
+        }
+    }
+
+    [PunRPC]
+    void cellTagger(string text)
+    {
+        this.tag = text;
+        //Debug.Log("here they come");
+    }
+
+    [PunRPC]
+    void colorRPC (int i, float r, float g, float b, float a )
+    {
+        //Debug.Log("in RPC");
+        this.timer = this.maxTime;
+        if (this.painter == 0 && this.isPaintable)
+        {
+            this.painter = i;
+            this.r.material.color = new Color(r,g,b,a);
+            //Debug.Log("painted by" + i);
+        }
+        else if (this.painter != i && this.isPaintable)
+        {
+            this.painter = 3;
+            this.r.material.color = Color.black;
+            //Debug.Log("double paint!!!!");
         }
     }
 
