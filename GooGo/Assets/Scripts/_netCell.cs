@@ -134,14 +134,9 @@ public class _netCell : Photon.MonoBehaviour
 
     public void updateClosestVisual(Color c)
     {
-        //Debug.Log("yo");
         if (painter == 0)
         {
-            Color c1 = c;
-            c1.a = .3f * Mathf.Max((((hCellNum) - closestDist) / (hCellNum)), 0);
-            //Debug.Log(c1.a);
-            r.material.color = c1;
-            //Debug.Log(r.material.color.a);
+            this.photonView.RPC("updateClosestVisRPC", PhotonTargets.All, c.r, c.g, c.b, c.a);
         }
     }
 
@@ -168,6 +163,19 @@ public class _netCell : Photon.MonoBehaviour
             this.painter = 3;
             this.r.material.color = Color.black;
             //Debug.Log("double paint!!!!");
+        }
+    }
+
+    [PunRPC]
+    void updateClosestVisRPC(float r, float g, float b, float a)
+    {
+        if (this.painter == 0)
+        {
+            Color c1 = new Color(r, g, b, a);
+            c1.a = .3f * Mathf.Max((((hCellNum) - closestDist) / (hCellNum)), 0);
+            //Debug.Log(c1.a);
+            this.r.material.color = c1;
+            //Debug.Log(r.material.color.a);
         }
     }
 

@@ -133,7 +133,7 @@ public class _netBrush : MonoBehaviour
         lookAheadDist = Vector3.Distance(lookAhead, start);
         if (lookAheadDist * ACR > ammo)
         {
-            Debug.Log("last frame drawing");
+            //Debug.Log("last frame drawing");
             lastFramePainting = true;
             lookAhead = Vector3.Lerp(start, lookAhead, ammo / (lookAheadDist * ACR));
             pos.position = lookAhead;
@@ -280,7 +280,7 @@ public class _netBrush : MonoBehaviour
         r.material.color = Color.cyan;
         isPainting = false;
     }
-
+    
     public void OnTriggerEnter(Collider col)
     {
         if (col.tag == "bucket")
@@ -291,34 +291,9 @@ public class _netBrush : MonoBehaviour
             }
         }
 
-        //deprocate soon
-        /*
-        if (col.tag == "cell")
-        {
-            if (isPainting)
-            {
-                col.GetComponent<cell>().color(playerNum, myColor);
-            }
-        }
-        */
+        
     }
 
-    //deprocate soon
-    public void OnTriggerStay(Collider col)
-    {
-        //Debug.Log("in something");
-        /*
-        if (col.tag == "cell")
-        {
-            //Debug.Log("in a cell");
-            if (isPainting)
-            {
-                col.GetComponent<cell>().color(playerNum, myColor);
-                //Debug.Log("coloring a cell");
-            }
-        }
-        */
-    }
 
 
     public void OnTriggerExit(Collider col)

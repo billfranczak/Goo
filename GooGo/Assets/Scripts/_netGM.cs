@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
+using UnityEngine.UI;
 
 public class _netGM : Photon.MonoBehaviour
 {
@@ -37,7 +38,6 @@ public class _netGM : Photon.MonoBehaviour
     public bool p1oom;
     public bool newPaint;
     public bool newPaint2; //triggers frame after newpaint
-    public bool frame1;
     public Color p1color;
     public Color p2color;
 
@@ -48,12 +48,45 @@ public class _netGM : Photon.MonoBehaviour
     public float[] distsSort;
 
     public bool gotBoard;
+    public bool ready;
+
+    public int cdTimer;
+    public bool cd;
+    public int gameClock;
+    public bool addingAmmo;
+
+    public _netDataShell nds;
+
+    private Slider chargeSlider;
+    private Slider ammoSlider;
+    private Slider scoreSlider;
+    private RectTransform csrt;
+    private RectTransform asrt;
+    private RectTransform ssrt;
+    public Image csFill;
+    //public GameObject asFill;
+    //public GameObject ssFill;
+    public int score;
+    public bool started;
 
     void Start()
     {
-        Debug.Log("network mode");
+        started = false;
+        chargeSlider = GameObject.FindGameObjectWithTag("chargeSlider").GetComponent<Slider>();
+        csrt = chargeSlider.GetComponent<RectTransform>();
+        //Debug.Log(GameObject.FindGameObjectWithTag("chargeSlider"));
+        csFill = (chargeSlider as UnityEngine.UI.Slider).GetComponentsInChildren<UnityEngine.UI.Image>().FirstOrDefault(t => t.name == "csFill");
 
+        ammoSlider = GameObject.FindGameObjectWithTag("ammoSlider").GetComponent<Slider>();
+
+        scoreSlider = GameObject.FindGameObjectWithTag("scoreSlider").GetComponent<Slider>();
+
+        Debug.Log("network mode");
         gotBoard = false;
+        ready = false;
+        cd = false;
+        cdTimer = 0;
+
         cellTemp = new List<GameObject>(625);
         cellQ = new List<Vector2>(625);
         qDist = new List<float>(625);
@@ -63,8 +96,9 @@ public class _netGM : Photon.MonoBehaviour
         origin = new Vector3(-3, 3, 0);
         newPaint = false;
         newPaint2 = false;
+        addingAmmo = false;
         maxTimer = 60;
-        Vector3 pos;
+        //Vector3 pos;
         //Quaternion angle = new Quaternion(0, 0, 0, 0);
         //Debug.Log(cellPrefab);
 
@@ -83,55 +117,13 @@ public class _netGM : Photon.MonoBehaviour
         gotCell = new _netCell[hCellNum, vCellNum];
         celLox = new Vector2[hCellNum, vCellNum];
         PhotonNetwork.ConnectUsingSettings("alpha");
-        Debug.Log("wait for connection?");
+        //Debug.Log("wait for connection?");
 
 
+        
+        //p1
 
-            /*
-            for (int i = 0; i < hCellNum; i++)
-            {
-                for (int j = 0; j < vCellNum; j++)
-                {
-                    pos = origin + Vector3.right * cellSize * i + Vector3.down * cellSize * j;
-                    //newCell = Instantiate(cellPrefab, pos, angle) as UnityEngine.Object;
-                    //Debug.Log(newCell.GetComponent<cell>());
-                    //GameObject c = GameObject.FindGameObjectWithTag("newCell");
-                    //Debug.Log(newCell.GetType());
-                    //cells[i][j] = newCell;
-                    newCell = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    newCell.transform.position = pos;
-                    newCell.transform.localScale = new Vector3(cellSize, cellSize, cellSize);
-                    newCell.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"));
-                    //Debug.Log(newCell.GetType());
-                    newCell.AddComponent<_netCell>();
-                    //newCell.AddComponent<Collider2D>();   CHECK THIS LATER
-
-                    //moving to nontrigger paradigm
-
-                    //newCell.GetComponent<BoxCollider>().isTrigger = true;
-                    newCell.tag = "cell";
-                    cells[i, j] = newCell;
-
-                }
-
-            }
-            */
-
-            /*
-            celLox = new Vector2[hCellNum, vCellNum];
-
-            for (int i = 0; i < hCellNum; i++)
-            {
-                for (int j = 0; j < vCellNum; j++)
-                {
-                    celLox[i, j] = cells[i, j].transform.position;
-                    gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-                }
-            }
-            */
-            //p1
-
-            p1Brush = Instantiate(brushPrefab).GetComponent<_netBrush>();
+        p1Brush = Instantiate(brushPrefab).GetComponent<_netBrush>();
         //Debug.Log(p1Brush);
         p1Brush.playerNum = 1;
         p1Input = Instantiate(inputHandlerPrefab).GetComponent<_netInputHandler>();
@@ -139,8 +131,8 @@ public class _netGM : Photon.MonoBehaviour
         p1bucket = Instantiate(bucketPrefab, initPos, Quaternion.identity).GetComponent<_netBucket>();
         p1bucket.playerNum = 1;
         //p1oom = false;
-        p1color = Color.blue;
-        p1Brush.myColor = Color.blue;
+        //p1color = Color.blue;
+        //p1Brush.myColor = Color.blue;
 
         //p2
 
@@ -156,11 +148,6 @@ public class _netGM : Photon.MonoBehaviour
         p2Brush.myColor = Color.magenta;
 
 
-
-
-
-        frame1 = true;
-
         cellQ.Clear();
         qDist.Clear();
 
@@ -170,94 +157,395 @@ public class _netGM : Photon.MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        if (frame1)
+        if (!gotBoard)
         {
-            p1Brush.playerNum = 1;
-            p1bucket.playerNum = 1;
-
-            p2Brush.playerNum = 2;
-            p2bucket.playerNum = 2;
-
-
-            //setAllCellBFS();
-            //Debug.Log("clearing old values");
-            /*
-            unmarkAllCells();
-            clearAllCellBFS();
-
-            //Debug.Log("calling bfs");
-
-            gotCell[0, 0].marked = true;
-            cellQ.Clear();
-            qDist.Clear();
-            Vector2 v0 = Vector2.zero;
-
-            //setAllCellBFS();
-            setAllCellDistsTemp();
-            sortCellDists();
-            */
-            /*
-            for (int t=0; t < hCellNum * vCellNum - 1; t++)
-            {
-                Debug.Log(gotCell[5,5].bfs[t]);
-            }
-            */
-
-            /*
-            cellQ.Add(v0);
-            qDist.Add(0);
-            cellBFS(0,0, -1);
-            */
-
-            /*
-            Debug.Log(gotCell[0,0].bfs[0]);
-            Debug.Log(gotCell[0, 0].bfs[1]);
-            Debug.Log(gotCell[0, 0].bfs[2]);
-            Debug.Log(gotCell[0, 0].bfs[3]);
-            Debug.Log(gotCell[0, 0].bfs[4]);
-            Debug.Log(gotCell[0, 0].bfs[5]);
-            Debug.Log(gotCell[0, 0].bfs[6]);
-            Debug.Log(gotCell[0, 0].bfs[7]);
-            Debug.Log(gotCell[0, 0].bfs[8]);
-            Debug.Log(gotCell[0, 0].bfs[9]);
-            */
-            /*
-            for (int i = 0; i < hCellNum; i++)
-            {
-                for (int j = 0; j < vCellNum; j++)
-                {
-                    p1Brush.cells[i, j] = cells[i, j];
-                    p1Brush.celLox[i, j] = celLox[i, j];
-                    p1Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-
-                }
-            }
-
-            for (int i = 0; i < hCellNum; i++)
-            {
-                for (int j = 0; j < vCellNum; j++)
-                {
-                    p2Brush.cells[i, j] = cells[i, j];
-                    p2Brush.celLox[i, j] = celLox[i, j];
-                    p2Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-
-                }
-            }
-            */
-            frame1 = false;
+            StartCoroutine(getOnBoardDelay(3));
         }
-
-        if (!PhotonNetwork.isMasterClient)
+        else
         {
-            if (!gotBoard)
+            if (PhotonNetwork.isMasterClient)
             {
-                getOnBoard();
+                if (ready)
+                {
+                    p1Update();
+                    p2Update();
+                    paintUpdate();
+                }
+                else
+                {
+                    if (nds.p1ready)
+                    {
+                        //waiting for p2
+                        if (nds.p2ready)
+                        {
+                            if (!started)
+                            {
+                                started = true;
+                                StartCoroutine(gameCountdown());
+                            }                           
+                        }
+                        if (Input.GetKeyDown("space"))
+                        {
+                            if (!started)
+                            {
+                                started = true;
+                                StartCoroutine(gameCountdown());
+                            }
+                            //TESTING PURPOSES ONLY
+                        }
+                    }
+                }
             }
-            
+            else
+            {
+                if (ready)
+                {
+                    p1Update();
+                    p2Update();
+                    paintUpdate();
+                }
+                else
+                {
+                    if (nds.p2ready)
+                    {
+                        //waiting for p1
+                        if (nds.p1ready)
+                        {
+                            if (!started)
+                            {
+                                started = true;
+                                StartCoroutine(gameCountdown());
+                            }
+                        }
+                    }
+                }
+            }
         }
 
 
+
+        
+
+
+
+    }
+    //END UPDATE
+
+
+    //GUI
+    private void OnGUI()
+    {
+        GUILayout.Label(PhotonNetwork.connectionStateDetailed.ToString());
+
+        if(gotBoard)
+        {
+            if(PhotonNetwork.isMasterClient && !nds.p1ready)
+            {
+                if (GUI.Button(new Rect(300, 20, 100, 50), "Ready!"))
+                {
+                    nds.p1r();
+                }
+            }
+            if (!PhotonNetwork.isMasterClient && !nds.p2ready)
+            {
+                if (GUI.Button(new Rect(300, 20, 100, 50), "Ready!"))
+                {
+                    nds.p2r();
+                }
+            }
+            if (cd)
+            {
+                GUI.Label(new Rect(Screen.width/2, 20, 100, 20), cdTimer.ToString());
+            }
+            if (ready)
+            {
+                ammoSlider.value = (float) p1bucket.ammo / p1bucket.maxAmmo;
+                chargeSlider.value = (float) p1Brush.ammo / p1Brush.maxAmmo;
+                if ((float)p1Brush.ammo / p1Brush.maxAmmo > (float) p1Brush.paintTypeThreshold/p1Brush.maxAmmo)
+                {
+                    if((float)chargeSlider.value>.99f)
+                    {
+                        csFill.color = Color.cyan;
+                    }
+                    else
+                    {
+                        csFill.color = Color.green;
+                    }
+                }
+                else
+                {
+                    csFill.color = Color.white;
+                }
+                //if (chargeSlider.value>0) { Debug.Log(chargeSlider.value); }
+                GUI.Label(new Rect(Screen.width / 2, 20, 100, 20), ((int)gameClock).ToString());
+
+                csrt.anchoredPosition= 57.5f*(p1Brush.transform.position-.5f*Vector3.right);
+                //Debug.Log((float )csrt.anchoredPosition.x / p1Brush.transform.position.x); 
+
+                updateScore();
+                scoreSlider.value = (float)score / (hCellNum * vCellNum);
+
+            }
+        }
+
+
+    }
+    
+    //NETCODE
+
+    void OnJoinedLobby()
+    {
+        //Debug.Log("join lobby");
+        PhotonNetwork.JoinRandomRoom();
+    }
+
+    void OnPhotonRandomJoinFailed()
+    {
+        //Debug.Log("join room fail");
+        PhotonNetwork.CreateRoom(null);
+    }
+
+    void OnJoinedRoom()
+    {
+        Debug.Log("joined room");
+        if (PhotonNetwork.isMasterClient)
+        {
+            gotBoard = true;
+            SpawnBoard();
+        }
+        else
+        {
+            //getOnBoard();
+        }
+        
+    }
+
+    void getOnBoard()
+    {
+        GameObject[] cellGetter;
+        cellGetter = GameObject.FindGameObjectsWithTag("cell");
+        //cellGetter = GameObject.FindObjectsOfType<_netCell>();
+        //int ij = 0;
+        int q;
+        int r;
+        float it;
+        float jt;
+        //Debug.Log(cellGetter.Length);
+        /*
+        foreach (GameObject c in cellGetter)
+        {
+            q = 0;
+            r = 0;
+            while (hCellNum*(q+1)<ij+1)
+            {
+                q++;
+            }
+            r = ij - (q * hCellNum);
+            //Debug.Log(ij);
+            cells[r, q] = c;
+            ij++;
+        } 
+        */
+        foreach (GameObject c in cellGetter)
+        {
+            //GENERALIZE!!!!!!!!!!
+            it = (c.GetPhotonView().transform.position.x +3.0f)*5.0f;
+            jt = 24.0f-(c.GetPhotonView().transform.position.y +1.8f)/ cellSize;
+            r = (int)(it+.01f);
+            q = (int)(jt+.01f);
+            //Debug.Log(it + ", " + jt + ", " + r + ", " + q);
+
+            cells[r, q] = c;
+
+        }
+
+
+        //Debug.Log(cells[0,0]);
+        if (cellGetter.Length==hCellNum*vCellNum)
+        {
+            //gotBoard = true;
+        }
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                //celLox[i, j] = cells[i, j].transform.position;
+                //Debug.Log(i + ", " + j);
+                celLox[i, j] = cells[i, j].GetPhotonView().transform.position;
+                
+                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+                
+
+            }
+        }
+
+        //Debug.Log(gotCell[0, 0].bfs[0]);
+
+        unmarkAllCells();
+        clearAllCellBFS();
+
+        //Debug.Log("calling bfs");
+
+        gotCell[0, 0].marked = true;
+        cellQ.Clear();
+        qDist.Clear();
+        Vector2 v0 = Vector2.zero;
+
+        //setAllCellBFS();
+        setAllCellDistsTemp();
+        sortCellDists();
+
+
+        //temp
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p1Brush.cells[i, j] = cells[i, j];
+                p1Brush.celLox[i, j] = celLox[i, j];
+                p1Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p2Brush.cells[i, j] = cells[i, j];
+                p2Brush.celLox[i, j] = celLox[i, j];
+                p2Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+        nds = GameObject.FindGameObjectWithTag("nds").GetComponent<_netDataShell>();
+
+
+        if (cellGetter.Length == hCellNum * vCellNum && (nds != null))
+        {
+            gotBoard = true;
+        }
+        //Debug.Log("got board");
+
+
+
+    }
+
+    void SpawnBoard()
+    {
+        //Debug.Log("spawn board");
+
+
+        cellTemp.Clear();
+
+        for (int n = 0; n < hCellNum * vCellNum; n++)
+        {
+            PhotonNetwork.Instantiate("_netCell", Vector2.zero, Quaternion.identity, 0);
+        }
+
+        while (cellTemp[399] == null) { Debug.Log("tempcell = null"); }
+
+        Vector3 pos;
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                newCell = cellTemp[0];
+                cells[i,j] = newCell;
+                pos = origin + Vector3.right * cellSize * i + Vector3.down * cellSize * j;
+                newCell.transform.position = pos;
+                newCell.transform.localScale = new Vector3(cellSize, cellSize, cellSize);
+                cellTemp.Remove(cellTemp[0]);
+            }
+        }
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                celLox[i, j] = cells[i, j].transform.position;
+                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+            }
+        }
+
+        //Debug.Log(gotCell[0, 0].bfs[0]);
+
+        unmarkAllCells();
+        clearAllCellBFS();
+
+        //Debug.Log("calling bfs");
+
+        gotCell[0, 0].marked = true;
+        cellQ.Clear();
+        qDist.Clear();
+        Vector2 v0 = Vector2.zero;
+
+        //setAllCellBFS();
+        setAllCellDistsTemp();
+        sortCellDists();
+
+
+        //temp
+        for(int i = 0; i < hCellNum; i++)
+            {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p1Brush.cells[i, j] = cells[i, j];
+                p1Brush.celLox[i, j] = celLox[i, j];
+                p1Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                p2Brush.cells[i, j] = cells[i, j];
+                p2Brush.celLox[i, j] = celLox[i, j];
+                p2Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
+
+            }
+        }
+
+        //gotBoard = true;
+        //Debug.Log("spawnboard complete");
+        Debug.Log("You Are Player 1.");
+        p1Brush.playerNum = 1;
+        p1bucket.playerNum = 1;
+
+        p2Brush.playerNum = 2;
+        p2bucket.playerNum = 2;
+
+        p1color = Color.blue;
+        p1Brush.myColor = Color.blue;
+
+        p2color = Color.magenta;
+        p2Brush.myColor = Color.magenta;
+
+        PhotonNetwork.Instantiate("_NetDataShell", Vector2.zero, Quaternion.identity, 0);
+    }
+
+    public void netNewPaint()
+    {
+        if (PhotonNetwork.isMasterClient)
+        {
+            nds.p1newPaint();
+        }
+        else
+        {
+            nds.p2newPaint();
+        }
+    }
+    //END NETCODE
+
+
+
+    public void p1Update()
+    {
         //P1
 
         p1Input.inputUpdate();
@@ -267,19 +555,38 @@ public class _netGM : Photon.MonoBehaviour
         v3.z = 00.0f;
         v3 = Camera.main.ScreenToWorldPoint(v3);
 
-        if (p1Brush.onBucket && p1Brush.isPainting)
+        if (!addingAmmo)
+        {
+            if (p1Brush.onBucket && p1Brush.isPainting && p1bucket.ammo > 0)
+            {
+                if (p1Brush.ammo < p1Brush.maxAmmo)
+                {
+                    //ammo++;
+                    //p1Brush.ammo = p1Brush.ammo + 6;
+                    if (p1Brush.ammo < p1Brush.paintTypeThreshold)
+                    {
+                        p1bucket.ammo--;
+                    }
+                    addingAmmo = true;
+                    StartCoroutine(ammoAdder());                   
+                }
+            }
+        }
+
+        if (p1Brush.onBucket && p1Brush.isPainting && p1bucket.ammo >0)
         {
             if (p1Brush.ammo < p1Brush.maxAmmo)
             {
                 //ammo++;
-                p1Brush.ammo = p1Brush.ammo + 6;
-                if (p1Brush.ammo == p1Brush.maxAmmo)
+                //p1Brush.ammo = p1Brush.ammo + 6;
+                if(!addingAmmo)
                 {
-                    Debug.Log("full charge");
-                }
-                if (p1Brush.ammo == p1Brush.paintTypeThreshold)
-                {
-                    Debug.Log("half charge");
+                    if (p1Brush.ammo < p1Brush.paintTypeThreshold)
+                    {
+                        p1bucket.ammo--;
+                    }
+                    addingAmmo = true;
+                    StartCoroutine(ammoAdder());
                 }
             }
 
@@ -292,6 +599,7 @@ public class _netGM : Photon.MonoBehaviour
             if (p1Brush.used)
             {
                 newPaint = true;
+                netNewPaint();
                 timer = maxTimer;
                 p1Brush.ammo = 0;
                 p1Brush.used = false;
@@ -307,6 +615,7 @@ public class _netGM : Photon.MonoBehaviour
                     if (p1Brush.lastFramePainting)
                     {
                         p1Brush.lastFramePainting = false;
+                        netNewPaint();
                         newPaint = true;
                         timer = maxTimer;
                     }
@@ -317,6 +626,7 @@ public class _netGM : Photon.MonoBehaviour
                     p1Brush.dotPaint();
                     p1Brush.ammo = 0;
                     newPaint = true;
+                    netNewPaint();
                     timer = maxTimer;
                 }
             }
@@ -337,12 +647,15 @@ public class _netGM : Photon.MonoBehaviour
         }
 
         // END P1
+    }
 
+    public void p2Update() //for testing
+    {
         //P2
 
         p2Input.inputUpdate();
 
-        v3 = Input.mousePosition;
+        var v3 = Input.mousePosition;
         v3.z = 00.0f;
         v3 = Camera.main.ScreenToWorldPoint(v3);
 
@@ -416,6 +729,28 @@ public class _netGM : Photon.MonoBehaviour
         }
 
         //END P2
+    }
+
+    public void paintUpdate()
+    {
+        if(PhotonNetwork.isMasterClient)
+        {
+            if(nds.netNewPaint2)
+            {
+                nds.netNewPaint2 = false;
+                newPaint = true;
+                timer = maxTimer;
+            }
+        }
+        else
+        {
+            if (nds.netNewPaint1)
+            {
+                nds.netNewPaint1 = false;
+                newPaint = true;
+                timer = maxTimer;
+            }
+        }
 
 
         if (newPaint)
@@ -428,309 +763,44 @@ public class _netGM : Photon.MonoBehaviour
 
             else
             {
+                //Debug.Log("Updating closest painter");
                 newPaint = false;
                 {
                     for (int i = 0; i < hCellNum; i++)
                     {
                         for (int j = 0; j < vCellNum; j++)
                         {
-                            updateClosestPlayer(i, j);
-                            if (gotCell[i, j].closestPlayer == 1)
+                            if (PhotonNetwork.isMasterClient)
                             {
-                                gotCell[i, j].updateClosestVisual(p1color);
+                                updateClosestPlayer(i, j);
+                                if (gotCell[i, j].closestPlayer == 1)
+                                {
+                                    gotCell[i, j].updateClosestVisual(p1color);
+                                }
+                                if (gotCell[i, j].closestPlayer == 2)
+                                {
+                                    gotCell[i, j].updateClosestVisual(p2color);
+                                }
                             }
-                            if (gotCell[i, j].closestPlayer == 2)
+                            else //flips colors for non-master client
                             {
-                                gotCell[i, j].updateClosestVisual(p2color);
+                                updateClosestPlayer(i, j);
+                                if (gotCell[i, j].closestPlayer == 1)
+                                {
+                                    gotCell[i, j].updateClosestVisual(p2color);
+                                }
+                                if (gotCell[i, j].closestPlayer == 2)
+                                {
+                                    gotCell[i, j].updateClosestVisual(p1color);
+                                }
                             }
                         }
                     }
                 }
                 //Debug.Log(gotCell[0, 0].r.material.color.a);  
             }
-
-
-
-
         }
-
-
-
-
-
-
     }
-    //END UPDATE
-
-
-    //NETCODE
-
-    private void OnGUI()
-    {
-        GUILayout.Label(PhotonNetwork.connectionStateDetailed.ToString());
-    }
-
-    void OnJoinedLobby()
-    {
-        Debug.Log("join lobby");
-        PhotonNetwork.JoinRandomRoom();
-    }
-
-    void OnPhotonRandomJoinFailed()
-    {
-        Debug.Log("join room fail");
-        PhotonNetwork.CreateRoom(null);
-    }
-
-    void OnJoinedRoom()
-    {
-        Debug.Log("join room");
-        if (PhotonNetwork.isMasterClient)
-        {
-            gotBoard = true;
-            SpawnBoard();
-        }
-        else
-        {
-            getOnBoard();
-        }
-        
-    }
-
-    void getOnBoard()
-    {
-        GameObject[] cellGetter;
-        cellGetter = GameObject.FindGameObjectsWithTag("cell");
-        //cellGetter = GameObject.FindObjectsOfType<_netCell>();
-        int ij = 0;
-        int q;
-        int r;
-        float it;
-        float jt;
-        //Debug.Log(cellGetter.Length);
-        /*
-        foreach (GameObject c in cellGetter)
-        {
-            q = 0;
-            r = 0;
-            while (hCellNum*(q+1)<ij+1)
-            {
-                q++;
-            }
-            r = ij - (q * hCellNum);
-            //Debug.Log(ij);
-            cells[r, q] = c;
-            ij++;
-        } 
-        */
-        foreach (GameObject c in cellGetter)
-        {
-            it = (c.GetPhotonView().transform.position.x +3.0f)*5.0f;
-            jt = 24.0f-(c.GetPhotonView().transform.position.y +1.8f)/ cellSize;
-            r = (int)(it+.01f);
-            q = (int)(jt+.01f);
-            //Debug.Log(it + ", " + jt + ", " + r + ", " + q);
-
-            cells[r, q] = c;
-
-        }
-
-
-        //Debug.Log(cells[0,0]);
-        if (cellGetter.Length==hCellNum*vCellNum)
-        {
-            //gotBoard = true;
-        }
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                //celLox[i, j] = cells[i, j].transform.position;
-                //Debug.Log(i + ", " + j);
-                celLox[i, j] = cells[i, j].GetPhotonView().transform.position;
-                
-                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-
-                
-
-            }
-        }
-
-        //Debug.Log(gotCell[0, 0].bfs[0]);
-
-        unmarkAllCells();
-        clearAllCellBFS();
-
-        //Debug.Log("calling bfs");
-
-        gotCell[0, 0].marked = true;
-        cellQ.Clear();
-        qDist.Clear();
-        Vector2 v0 = Vector2.zero;
-
-        //setAllCellBFS();
-        setAllCellDistsTemp();
-        sortCellDists();
-
-
-        //temp
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                p1Brush.cells[i, j] = cells[i, j];
-                p1Brush.celLox[i, j] = celLox[i, j];
-                p1Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-
-            }
-        }
-
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                p2Brush.cells[i, j] = cells[i, j];
-                p2Brush.celLox[i, j] = celLox[i, j];
-                p2Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-
-            }
-        }
-
-        if (cellGetter.Length == hCellNum * vCellNum)
-        {
-            gotBoard = true;
-        }
-        Debug.Log("got board");
-
-
-
-    }
-
-    void SpawnBoard()
-    {
-        Debug.Log("spawn board");
-        /*
-        cells = new GameObject[hCellNum, vCellNum];
-        gotCell = new _netCell[hCellNum, vCellNum];
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                pos = origin + Vector3.right * cellSize * i + Vector3.down * cellSize * j;
-                //newCell = Instantiate(cellPrefab, pos, angle) as UnityEngine.Object;
-                //Debug.Log(newCell.GetComponent<cell>());
-                //GameObject c = GameObject.FindGameObjectWithTag("newCell");
-                //Debug.Log(newCell.GetType());
-                //cells[i][j] = newCell;
-                newCell = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                newCell.transform.position = pos;
-                newCell.transform.localScale = new Vector3(cellSize, cellSize, cellSize);
-                newCell.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"));
-                //Debug.Log(newCell.GetType());
-                newCell.AddComponent<_netCell>();
-                //newCell.AddComponent<Collider2D>();   CHECK THIS LATER
-
-                //moving to nontrigger paradigm
-
-                //newCell.GetComponent<BoxCollider>().isTrigger = true;
-                newCell.tag = "cell";
-                cells[i, j] = newCell;
-
-            }
-
-        }
-
-        celLox = new Vector2[hCellNum, vCellNum];
-
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                celLox[i, j] = cells[i, j].transform.position;
-                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-            }
-        }
-        */
-
-        cellTemp.Clear();
-        for (int n = 0; n < hCellNum * vCellNum; n++)
-        {
-            PhotonNetwork.Instantiate("_netCell", Vector2.zero, Quaternion.identity, 0);
-        }
-
-        while (cellTemp[399] == null) { Debug.Log("tempcell = null"); }
-
-        Vector3 pos;
-
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                newCell = cellTemp[0];
-                cells[i,j] = newCell;
-                pos = origin + Vector3.right * cellSize * i + Vector3.down * cellSize * j;
-                newCell.transform.position = pos;
-                newCell.transform.localScale = new Vector3(cellSize, cellSize, cellSize);
-                cellTemp.Remove(cellTemp[0]);
-            }
-        }
-
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                celLox[i, j] = cells[i, j].transform.position;
-                gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-            }
-        }
-
-        //Debug.Log(gotCell[0, 0].bfs[0]);
-
-        unmarkAllCells();
-        clearAllCellBFS();
-
-        //Debug.Log("calling bfs");
-
-        gotCell[0, 0].marked = true;
-        cellQ.Clear();
-        qDist.Clear();
-        Vector2 v0 = Vector2.zero;
-
-        //setAllCellBFS();
-        setAllCellDistsTemp();
-        sortCellDists();
-
-
-        //temp
-        for(int i = 0; i < hCellNum; i++)
-            {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                p1Brush.cells[i, j] = cells[i, j];
-                p1Brush.celLox[i, j] = celLox[i, j];
-                p1Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-
-            }
-        }
-
-        for (int i = 0; i < hCellNum; i++)
-        {
-            for (int j = 0; j < vCellNum; j++)
-            {
-                p2Brush.cells[i, j] = cells[i, j];
-                p2Brush.celLox[i, j] = celLox[i, j];
-                p2Brush.gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
-
-            }
-        }
-
-        //gotBoard = true;
-        Debug.Log("spawnboard complete");
-
-
-
-    }
-    //END NETCODE
 
     public void setAllCellDistsTemp()
     {
@@ -995,7 +1065,6 @@ public class _netGM : Photon.MonoBehaviour
         }
     }
 
-
     public void setAllCellBFS()
     {
 
@@ -1014,7 +1083,6 @@ public class _netGM : Photon.MonoBehaviour
         }
     }
 
-
     public void updateClosestPlayer(int i, int j)
     {
         int t = 0;
@@ -1028,16 +1096,17 @@ public class _netGM : Photon.MonoBehaviour
             if (gotCell[i1, j1].closestDist == 0)
             {
                 gotCell[i, j].closestPlayer = gotCell[i1, j1].painter;
-
+                /*
                 if (i == 0 && j == 0)
                 {
                     Debug.Log("painter:" + gotCell[i1, j1].painter);
                 }
-
+                */
                 gotCell[i, j].closestDist = gotCell[i, j].dists[t];
             }
             t++;
         }
+
         while (t < hCellNum * vCellNum && (gotCell[i, j].dists[t] == gotCell[i, j].closestDist))
         {
             i1 = (int)gotCell[i, j].bfs[t].x;
@@ -1058,6 +1127,101 @@ public class _netGM : Photon.MonoBehaviour
 
     }
 
+    public void updateScore ()
+    {
+        score = 0;
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                if(gotCell[i,j].closestPlayer==1 || gotCell[i, j].painter == 1)
+                {
+                    score++;
+                }
+            }
 
+        }
+    }
+
+    IEnumerator getOnBoardDelay(int i)
+    {
+        yield return new WaitForSeconds(i);
+
+        if (!gotBoard && !PhotonNetwork.isMasterClient)
+        {
+
+            getOnBoard();
+            Debug.Log("You Are Player 2.");
+            p1Brush.playerNum = 2;
+            p1bucket.playerNum = 2;
+
+            p2Brush.playerNum = 1;
+            p2bucket.playerNum = 1;
+
+            p1color = Color.magenta;
+            p1Brush.myColor = Color.magenta;
+
+            p2color = Color.blue;
+            p2Brush.myColor = Color.blue;
+
+            //Debug.Log("only executing getboard once");
+        }
+    }
+
+    IEnumerator gameCountdown()
+    {
+        cd = true;
+        cdTimer = 3;
+        yield return new WaitForSeconds(1);
+        cdTimer = 2;
+        yield return new WaitForSeconds(1);
+        cdTimer = 1;
+        yield return new WaitForSeconds(1);
+        cd = false;
+        ready = true;
+        gameClock = 60;
+        StartCoroutine(gameClockCounter());
+    }
+
+    IEnumerator gameClockCounter()
+    {
+        //Debug.Log("calling game clock");
+        while (gameClock > 0)
+        {
+            gameClock--;
+            yield return new WaitForSeconds(1);
+        }
+        ready = false;
+    }
+
+    IEnumerator ammoAdder()
+    {
+        yield return new WaitForSeconds(.05f);
+        p1Brush.ammo = p1Brush.ammo + 3;        
+        if (p1Brush.ammo == p1Brush.maxAmmo)
+        {
+            p1bucket.ammo += 30;
+            addingAmmo = false;
+        }
+        else
+        {
+            if (p1Brush.onBucket && p1Brush.isPainting && p1bucket.ammo > 0)
+            {
+                if (p1Brush.ammo < p1Brush.paintTypeThreshold)
+                {
+                    p1bucket.ammo--;
+                }
+                StartCoroutine(ammoAdder());
+            }
+            else
+            {
+                addingAmmo = false;
+            }
+        }
+
+        
+    }
+
+    
 
 }
