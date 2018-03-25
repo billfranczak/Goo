@@ -60,26 +60,39 @@ public class _netGM : Photon.MonoBehaviour
     private Slider chargeSlider;
     private Slider ammoSlider;
     private Slider scoreSlider;
+    private Canvas sliderCanvas;
     private RectTransform csrt;
     private RectTransform asrt;
     private RectTransform ssrt;
+    private RectTransform scrt;
     public Image csFill;
+    public Vector2 worldToCanvas;
+    public Vector3 w2c;
     //public GameObject asFill;
     //public GameObject ssFill;
     public int score;
     public bool started;
+    public bool displayScore;
 
     void Start()
     {
+        //Debug.Log(Screen.width);
+        //Debug.Log(Camera.main.fieldOfView);
+        //Debug.Log(Camera.main);
+        displayScore = false;
         started = false;
+        sliderCanvas = GameObject.FindGameObjectWithTag("sliderCanvas").GetComponent<Canvas>();
         chargeSlider = GameObject.FindGameObjectWithTag("chargeSlider").GetComponent<Slider>();
+        scoreSlider = GameObject.FindGameObjectWithTag("scoreSlider").GetComponent<Slider>();
+        scrt = sliderCanvas.GetComponent<RectTransform>();
         csrt = chargeSlider.GetComponent<RectTransform>();
+        
         //Debug.Log(GameObject.FindGameObjectWithTag("chargeSlider"));
         csFill = (chargeSlider as UnityEngine.UI.Slider).GetComponentsInChildren<UnityEngine.UI.Image>().FirstOrDefault(t => t.name == "csFill");
 
         ammoSlider = GameObject.FindGameObjectWithTag("ammoSlider").GetComponent<Slider>();
 
-        scoreSlider = GameObject.FindGameObjectWithTag("scoreSlider").GetComponent<Slider>();
+        
 
         Debug.Log("network mode");
         gotBoard = false;
@@ -102,6 +115,9 @@ public class _netGM : Photon.MonoBehaviour
         //Quaternion angle = new Quaternion(0, 0, 0, 0);
         //Debug.Log(cellPrefab);
 
+        worldToCanvasConversion(scrt, Camera.main, origin + Vector3.up * cellSize * (vCellNum / 8) +Vector3.right*cellSize*(hCellNum/2)); //+ Vector3.up * .5f)
+                                                                                                     
+        scoreSlider.GetComponent<RectTransform>().anchoredPosition = w2c;
 
 
         GameObject backdrop = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -130,6 +146,10 @@ public class _netGM : Photon.MonoBehaviour
         var initPos = new Vector3(-3, -3, 0);
         p1bucket = Instantiate(bucketPrefab, initPos, Quaternion.identity).GetComponent<_netBucket>();
         p1bucket.playerNum = 1;
+
+        worldToCanvasConversion(scrt, Camera.main, initPos+Vector3.down*.6f); //+ Vector3.up * .5f)
+        ammoSlider.GetComponent<RectTransform>().anchoredPosition = w2c;
+
         //p1oom = false;
         //p1color = Color.blue;
         //p1Brush.myColor = Color.blue;
@@ -279,16 +299,26 @@ public class _netGM : Photon.MonoBehaviour
                 //if (chargeSlider.value>0) { Debug.Log(chargeSlider.value); }
                 GUI.Label(new Rect(Screen.width / 2, 20, 100, 20), ((int)gameClock).ToString());
 
-                csrt.anchoredPosition= 57.5f*(p1Brush.transform.position-.5f*Vector3.right);
+
+                worldToCanvasConversion(scrt,Camera.main, p1Brush.transform.position - .5f * Vector3.right);
+                csrt.anchoredPosition = w2c;
                 //Debug.Log((float )csrt.anchoredPosition.x / p1Brush.transform.position.x); 
 
                 updateScore();
                 scoreSlider.value = (float)score / (hCellNum * vCellNum);
-
+            }
+            if(displayScore)
+            {
+                if (score > hCellNum * vCellNum / 2)
+                {
+                    GUI.Label(new Rect(Screen.width / 2, 20, 100, 20), "Player 1 Wins!");
+                }
+                else
+                {
+                    GUI.Label(new Rect(Screen.width / 2, 20, 100, 20), "Player 2 Wins!");
+                }
             }
         }
-
-
     }
     
     //NETCODE
@@ -1143,6 +1173,16 @@ public class _netGM : Photon.MonoBehaviour
         }
     }
 
+    public void worldToCanvasConversion(RectTransform canvas, Camera camera, Vector3 position)
+    {
+        worldToCanvas = camera.WorldToViewportPoint(position);
+        worldToCanvas.x *= canvas.sizeDelta.x;
+        worldToCanvas.y *= canvas.sizeDelta.y;
+        worldToCanvas.x -= canvas.sizeDelta.x * canvas.pivot.x;
+        worldToCanvas.y -= canvas.sizeDelta.y * canvas.pivot.y;
+        w2c = new Vector3(worldToCanvas.x, worldToCanvas.y, 0);
+    }
+
     IEnumerator getOnBoardDelay(int i)
     {
         yield return new WaitForSeconds(i);
@@ -1192,6 +1232,7 @@ public class _netGM : Photon.MonoBehaviour
             yield return new WaitForSeconds(1);
         }
         ready = false;
+        displayScore = true;
     }
 
     IEnumerator ammoAdder()

@@ -12,7 +12,7 @@ public class _netBucket : MonoBehaviour
     void Start()
     {
         playerNum = 0;
-        maxAmmo = 520;
+        maxAmmo = 420;
         GetComponent<Renderer>().sortingLayerName = "LayerName";
         GetComponent<Renderer>().sortingOrder = 0;
         ammo = maxAmmo;
