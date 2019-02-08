@@ -101,7 +101,7 @@ public class _netCell : Photon.MonoBehaviour
             t++;
         }
     } */
-
+    
     public void OnPhotonInstantiate()
     {
         FindObjectOfType<_netGM>().cellTemp.Add(this.gameObject);
@@ -113,8 +113,8 @@ public class _netCell : Photon.MonoBehaviour
         this.photonView.RPC("colorRPC", PhotonTargets.All, i, c.r, c.g, c.b, c.a);
     }
 
-    /*
-    public void color(int i, Color c)
+    
+    public void colorNRPC(int i, Color c)
     {
         timer = maxTime;
         if (painter == 0 && isPaintable)
@@ -130,7 +130,7 @@ public class _netCell : Photon.MonoBehaviour
             //Debug.Log("double paint!!!!");
         }
     }
-    */
+    
 
     public void updateClosestVisual(Color c)
     {

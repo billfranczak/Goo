@@ -14,23 +14,21 @@ using System.Collections;
 using System.Collections.Generic;
 using ExitGames.Client.Photon;
 
-
-
-#if UNITY_4_0 || UNITY_4_1 || UNITY_4_2 || UNITY_4_3 || UNITY_4_4 || UNITY_4_5 || UNITY_4_6 || UNITY_4_7 || UNITY_5 || UNITY_5_0 || UNITY_5_1 || UNITY_2017
+#if UNITY_4_0 || UNITY_4_1 || UNITY_4_2 || UNITY_4_3 || UNITY_4_4 || UNITY_4_5 || UNITY_4_6 || UNITY_4_7 || UNITY_5 || UNITY_5_0 || UNITY_5_1 || UNITY_5_3_OR_NEWER
     using UnityEngine;
     using Hashtable = ExitGames.Client.Photon.Hashtable;
     using SupportClassPun = ExitGames.Client.Photon.SupportClass;
 #endif
 
 
-/// <summary>
-/// A LoadbalancingPeer provides the operations and enum definitions needed to use the loadbalancing server application which is also used in Photon Cloud.
-/// </summary>
-/// <remarks>
-/// Internally used by PUN.
-/// The LoadBalancingPeer does not keep a state, instead this is done by a LoadBalancingClient.
-/// </remarks>
-internal class LoadBalancingPeer : PhotonPeer
+    /// <summary>
+    /// A LoadbalancingPeer provides the operations and enum definitions needed to use the loadbalancing server application which is also used in Photon Cloud.
+    /// </summary>
+    /// <remarks>
+    /// Internally used by PUN.
+    /// The LoadBalancingPeer does not keep a state, instead this is done by a LoadBalancingClient.
+    /// </remarks>
+    internal class LoadBalancingPeer : PhotonPeer
     {
 
         internal bool IsProtocolSecure
@@ -371,7 +369,7 @@ internal class LoadBalancingPeer : PhotonPeer
         /// This is an async request which triggers a OnOperationResponse() call.
         /// Returned game list is stored in RoomInfoList.
         /// </remarks>
-        /// <see cref="http://doc.photonengine.com/en-us/pun/current/manuals-and-demos/matchmaking-and-lobby#sql_lobby_type"/>
+        /// <see cref="https://doc.photonengine.com/en-us/pun/current/lobby-and-matchmaking/matchmaking-and-lobby#sql_lobby_type"/>
         /// <param name="lobby">The lobby to query. Has to be of type SqlLobby.</param>
         /// <param name="queryData">The sql query statement.</param>
         /// <returns>If the operation could be sent (has to be connected).</returns>
@@ -650,8 +648,7 @@ internal class LoadBalancingPeer : PhotonPeer
 
             if (encryptionMode == EncryptionMode.DatagramEncryption && expectedProtocol != ConnectionProtocol.Udp)
             {
-                
-                //Debug.LogWarning("Expected protocol set to UDP, due to encryption mode DatagramEncryption. Changing protocol in PhotonServerSettings from: " + PhotonNetwork.PhotonServerSettings.Protocol);
+                Debug.LogWarning("Expected protocol set to UDP, due to encryption mode DatagramEncryption. Changing protocol in PhotonServerSettings from: " + PhotonNetwork.PhotonServerSettings.Protocol);
                 PhotonNetwork.PhotonServerSettings.Protocol = ConnectionProtocol.Udp;
                 expectedProtocol = ConnectionProtocol.Udp;
             }
@@ -1163,7 +1160,7 @@ internal class LoadBalancingPeer : PhotonPeer
         /// Obsolete. Replaced by Leave. public const byte Disconnect = LiteEventCode.Disconnect;
 
         /// <summary>(251) Sent by Photon Cloud when a plugin-call or webhook-call failed. Usually, the execution on the server continues, despite the issue. Contains: ParameterCode.Info.</summary>
-        /// <seealso cref="https://doc.photonengine.com/en/realtime/current/reference/webhooks#options"/>
+        /// <seealso cref="https://doc.photonengine.com/en-us/pun/current/gameplay/web-extensions/webhooks#options"/>
         public const byte ErrorInfo = 251;
 
         /// <summary>(250) Sent by Photon whent he event cache slice was changed. Done by OpRaiseEvent.</summary>

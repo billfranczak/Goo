@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class _netBrush : MonoBehaviour
+public class _netBrush : Photon.MonoBehaviour
 {
     
     public Transform pos;
@@ -40,11 +40,13 @@ public class _netBrush : MonoBehaviour
     public bool used; //doc
     public bool lastFramePainting;
 
+    public _netDataShell nds;
+
 
     // Use this for initialization
     void Start()
     {
-        hCellNum = 25;
+        hCellNum =25;
         vCellNum = 25;
         cells = new GameObject[hCellNum, vCellNum];
         cellSize = .2f;
@@ -170,7 +172,7 @@ public class _netBrush : MonoBehaviour
         //Debug.Log("pos" + pos.position);
         used = true;
         bcLerpPaint();
-
+        //bclerpRPCcaller();
     }
 
     public void dotPaint()
@@ -218,6 +220,52 @@ public class _netBrush : MonoBehaviour
             t++;
         }
     }
+
+    //NET STUFF 
+
+    // paint blob used for net purposes, moved to NDS, since NDS has a photonview
+    /*
+    public void Blob(int i0, int j0, float r, Color c, int pNum)
+    {
+        int t = 0;
+        int i;
+        int j;
+        while (gotCell[i0, j0].dists[t] < r * (1 / cellSize))
+        {
+            i = (int)gotCell[i0, j0].bfs[t].x;
+            j = (int)gotCell[i0, j0].bfs[t].y;
+            gotCell[i, j].colorNRPC(pNum, c);
+            t++;
+        }
+    }
+    */
+
+    public void dotpaintRPCcaller()
+    {
+        cellPullback(pos.position.x, pos.position.y);
+        this.nds.photonView.RPC("dotPaintRPC", PhotonTargets.All, myColor.r, myColor.g, myColor.b, myColor.a, playerNum,iOfCel,jOfCel,dotSize/2);
+        //brush has no photon view, this process must be called from nds.
+    }
+
+    public void bclerpRPCcaller() //currently making 10x too many calls because of the placement of the pullback function. whole function to be moved to nds in future
+    {
+        for (int t = 0; t < 10; t++)
+        {
+            //Debug.Log(t / 10.00f);
+            tlerp = Vector2.Lerp(lookAhead, bc, t / 10.00f);
+            cellPullback(tlerp.x, tlerp.y);
+            //Debug.Log(t+": "+tlerp);
+            paintBlob(iOfCel, jOfCel, lineSize / 1.5f);
+            this.nds.photonView.RPC("dotPaintRPC", PhotonTargets.All, myColor.r, myColor.g, myColor.b, myColor.a, playerNum, iOfCel, jOfCel, lineSize / 1.5f);
+        }
+        //Debug.Log("tlerp bc" + bc);
+        //Debug.Log("lerp lookahead" + lookAhead);
+    }
+
+
+   
+    //END NET STUFF
+
 
     public void cellPullback(float x, float y)
     {

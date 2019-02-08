@@ -405,8 +405,6 @@ public class _netGM : Photon.MonoBehaviour
                 
                 gotCell[i, j] = cells[i, j].GetComponent<_netCell>();
 
-                
-
             }
         }
 
@@ -459,7 +457,8 @@ public class _netGM : Photon.MonoBehaviour
         }
         //Debug.Log("got board");
 
-
+        p1Brush.nds = nds;
+        p2Brush.nds = nds;
 
     }
 
@@ -475,7 +474,7 @@ public class _netGM : Photon.MonoBehaviour
             PhotonNetwork.Instantiate("_netCell", Vector2.zero, Quaternion.identity, 0);
         }
 
-        while (cellTemp[399] == null) { Debug.Log("tempcell = null"); }
+        //while (cellTemp[399] == null) { Debug.Log("tempcell = null"); }
 
         Vector3 pos;
 
@@ -557,6 +556,18 @@ public class _netGM : Photon.MonoBehaviour
         p2Brush.myColor = Color.magenta;
 
         PhotonNetwork.Instantiate("_NetDataShell", Vector2.zero, Quaternion.identity, 0);
+
+        p1Brush.nds = nds;
+        p2Brush.nds = nds;
+        /*
+        for (int i = 0; i < hCellNum; i++)
+        {
+            for (int j = 0; j < vCellNum; j++)
+            {
+                nds.gotCell[i,j]=gotCell[i, j];
+            }
+        }
+        */ //moved to gotboard
     }
 
     public void netNewPaint()
@@ -654,6 +665,7 @@ public class _netGM : Photon.MonoBehaviour
                 {
                     //Debug.Log("dot");
                     p1Brush.dotPaint();
+                    //p1Brush.dotpaintRPCcaller();
                     p1Brush.ammo = 0;
                     newPaint = true;
                     netNewPaint();
@@ -737,6 +749,7 @@ public class _netGM : Photon.MonoBehaviour
                 {
                     //Debug.Log("dot");
                     p2Brush.dotPaint();
+                    //p2Brush.dotpaintRPCcaller();
                     p2Brush.ammo = 0;
                     newPaint = true;
                     timer = maxTimer;

@@ -216,6 +216,10 @@ public class brush : MonoBehaviour {
         }
     }
 
+
+
+
+
     public void cellPullback(float x, float y)
     {
         pullback1 = true;
