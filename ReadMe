@@ -1,0 +1,9 @@
+Instructions for running game:
+
+Pressing "ready" will attempt to make a match over the internet. If playing solo for testing purposes, use the spacebar to skip this process.
+
+Rules: You may pick up "stones" to place by hovering the mouse over the bottom left square and then place them on the board. 
+Player 1 controls the left hand, and can also control a dummy version of the right hand to simulate player 2 using right click and the right pile of stones.
+When stones are placed, control is given to the player whose stone is closest for each cell on the board, i.e., the voronoi diagram decides the scoring.
+You may place your stones in a pile (fast but innefficient in terms of ammo) by briefly holding mouse over the stone pile, or pick up many stones to spread out,
+which is slower but more efficient.
